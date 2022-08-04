@@ -9,12 +9,13 @@
 			autocomplete="off"
 			v-model="newTodo"
 		/>
+		<p v-if="emptyValue" class="error">Black todo passed!!!</p>
 		<ul class="todos" id="todos">
 			<todo-item
 				@delete-todo="removeTodo"
 				v-for="todo in todosList"
-				:key="todo.name"
-				:todo="todo.name"
+				:key="todo.id"
+				:todo="todo.todo"
 			>
 				{{ todo }}
 			</todo-item>
@@ -32,14 +33,47 @@ export default {
 		return {
 			newTodo: '',
 			todosList: [],
+			emptyValue: false,
+			apiError: null,
 		}
 	},
-
+	mounted() {
+		this.loadTodos()
+	},
 	methods: {
+		async loadTodos() {
+			const response = await fetch(
+				'https://vue-demo-11a1f-default-rtdb.firebaseio.com/todos.json'
+			)
+			const resData = await response.json()
+			const todos = []
+			for (const id in resData) {
+				todos.push({
+					id: id,
+					todo: resData[id].name,
+				})
+			}
+			this.todosList = todos
+		},
 		addTodo() {
 			const todoObject = {}
-			todoObject.name = this.newTodo
-			this.todosList.push(todoObject)
+			if (this.newTodo === '') {
+				this.emptyValue = true
+				setTimeout(() => {
+					this.emptyValue = false
+				}, 3000)
+			} else {
+				todoObject.name = this.newTodo
+				//this.todosList.push(todoObject)   //adding to an array
+				// adding to an api
+				fetch('https://vue-demo-11a1f-default-rtdb.firebaseio.com/todos.json', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(todoObject),
+				})
+			}
 			this.newTodo = ''
 		},
 		removeTodo(todo) {
@@ -84,5 +118,8 @@ form {
 	padding: 0;
 	margin: 0;
 	list-style-type: none;
+}
+.error {
+	color: tomato;
 }
 </style>
